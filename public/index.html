@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Finder - Multi-API</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --eggshell: #FDFBF7;
+      --eggshell-dark: #F0EAD6;
+      --coffee: #4B3621;
+      --coffee-light: #6B4E3D;
+      --orange: #CC5500;
+      --orange-hover: #B34D00;
+      --green: #2E7D32;
+      --green-light: #4CAF50;
+      --red: #C62828;
+      --yellow: #F9A825;
+      --blue: #1565C0;
+    }
+
+    body {
+      background-color: var(--eggshell);
+      color: var(--coffee);
+      min-height: 100vh;
+    }
+
+    .container {
+      min-height: 100vh;
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--eggshell-dark);
+      border: 2px solid var(--coffee);
+      border-radius: 1rem;
+      padding: 2rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .title {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: var(--coffee);
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: var(--coffee-light);
+      margin-bottom: 0.5rem;
+    }
+
+    .powered-by {
+      font-size: 0.75rem;
+      color: var(--coffee-light);
+      margin-bottom: 1.5rem;
+    }
+
+    /* Provider Status Bar */
+    .providers-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      padding: 1rem;
+      background: var(--eggshell);
+      border-radius: 0.5rem;
+      border: 1px solid var(--coffee-light);
+    }
+
+    .provider-chip {
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .provider-chip.configured {
+      background: var(--green);
+      color: white;
+    }
+
+    .provider-chip.not-configured {
+      background: var(--coffee-light);
+      color: white;
+      opacity: 0.5;
+    }
+
+    .provider-chip.exhausted {
+      background: var(--red);
+      color: white;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--coffee);
+      margin-bottom: 0.5rem;
+    }
+
+    .input {
+      padding: 0.75rem 1rem;
+      border: 2px solid var(--coffee);
+      border-radius: 0.5rem;
+      background: var(--eggshell);
+      color: var(--coffee);
+      font-size: 1rem;
+    }
+
+    .input:focus {
+      outline: none;
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(204, 85, 0, 0.1);
+    }
+
+    .button {
+      width: 100%;
+      padding: 1rem 1.5rem;
+      background: var(--orange);
+      color: white;
+      border: 2px solid var(--coffee);
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .button:hover:not(:disabled) {
+      background: var(--orange-hover);
+    }
+
+    .button:disabled {
+      background: var(--coffee-light);
+      cursor: not-allowed;
+    }
+
+    .results {
+      margin-top: 2rem;
+    }
+
+    .results-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--coffee);
+      margin-bottom: 1rem;
+    }
+
+    .result-item {
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      border-radius: 0.5rem;
+      border: 2px solid;
+      transition: all 0.3s;
+    }
+
+    .result-valid {
+      background: #E8F5E9;
+      border-color: var(--green);
+    }
+
+    .result-accept_all, .result-risky {
+      background: #FFF8E1;
+      border-color: var(--yellow);
+    }
+
+    .result-invalid, .result-disposable {
+      background: #FFEBEE;
+      border-color: var(--red);
+    }
+
+    .result-unknown {
+      background: var(--eggshell);
+      border-color: var(--coffee-light);
+    }
+
+    .result-checking {
+      background: var(--eggshell);
+      border-color: var(--orange);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .result-email {
+      font-size: 1.125rem;
+      color: var(--coffee);
+      word-break: break-all;
+      font-weight: 600;
+    }
+
+    .result-provider {
+      font-size: 0.65rem;
+      padding: 0.2rem 0.5rem;
+      background: var(--blue);
+      color: white;
+      border-radius: 4px;
+    }
+
+    .result-badges {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+
+    .badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge-valid { background: var(--green); color: white; }
+    .badge-accept_all, .badge-risky { background: var(--yellow); color: var(--coffee); }
+    .badge-invalid, .badge-disposable { background: var(--red); color: white; }
+    .badge-unknown { background: var(--coffee-light); color: white; }
+    .badge-checking { background: var(--orange); color: white; }
+    .badge-score { background: var(--coffee); color: white; }
+
+    .result-details {
+      font-size: 0.75rem;
+      color: var(--coffee-light);
+      margin-top: 0.5rem;
+    }
+
+    .best-result {
+      border-width: 3px;
+      position: relative;
+      margin-top: 1.5rem;
+    }
+
+    .best-result::before {
+      content: '⭐ MEILLEUR RÉSULTAT';
+      position: absolute;
+      top: -12px;
+      left: 1rem;
+      background: var(--green);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    .summary {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: var(--eggshell);
+      border: 2px solid var(--coffee);
+      border-radius: 0.5rem;
+    }
+
+    .summary-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .summary-stats {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .stat-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .stat-dot.valid { background: var(--green); }
+    .stat-dot.accept_all { background: var(--yellow); }
+    .stat-dot.invalid { background: var(--red); }
+
+    .copy-btn {
+      margin-left: 0.5rem;
+      padding: 0.2rem 0.5rem;
+      background: var(--green);
+      color: white;
+      border: none;
+      border-radius: 0.25rem;
+      cursor: pointer;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .copy-btn:hover {
+      background: var(--green-light);
+    }
+
+    .note {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: var(--eggshell-dark);
+      border-left: 4px solid var(--orange);
+      border-radius: 0.5rem;
+    }
+
+    .note-text {
+      font-size: 0.875rem;
+      color: var(--coffee);
+    }
+
+    @media (max-width: 768px) {
+      .title { font-size: 1.75rem; }
+      .container { padding: 1rem; }
+      .card { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1 class="title">&gt; EMAIL_FINDER.exe</h1>
+      <p class="subtitle">// Vérification multi-API avec rotation automatique</p>
+      <p class="powered-by">Cascade: Verifalia → Hunter → AbstractAPI → ZeroBounce → EmailListVerify</p>
+
+      <div class="providers-bar" id="providersBar">
+        <span style="font-size: 0.75rem; color: var(--coffee-light);">Chargement des providers...</span>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="label">$ PRENOM: *</label>
+          <input type="text" id="firstName" placeholder="Jean" class="input">
+        </div>
+
+        <div class="form-group">
+          <label class="label">$ NOM: *</label>
+          <input type="text" id="lastName" placeholder="Dupont" class="input">
+        </div>
+
+        <div class="form-group">
+          <label class="label">$ ENTREPRISE: (optionnel)</label>
+          <input type="text" id="company" placeholder="Acme Corp" class="input">
+        </div>
+
+        <div class="form-group">
+          <label class="label">$ DOMAINE: *</label>
+          <input type="text" id="domain" placeholder="acme.com" class="input">
+        </div>
+      </div>
+
+      <button id="searchBtn" class="button">
+        [EXEC] >> TROUVER L'EMAIL
+      </button>
+
+      <div id="results" class="results" style="display: none;">
+        <h2 class="results-title">&gt; RESULTATS.log</h2>
+        <div id="resultsList"></div>
+        <div id="summary" class="summary" style="display: none;">
+          <div class="summary-title">📊 Résumé:</div>
+          <div class="summary-stats">
+            <div class="stat"><span class="stat-dot valid"></span> <span id="validCount">0</span> valide(s)</div>
+            <div class="stat"><span class="stat-dot accept_all"></span> <span id="catchallCount">0</span> catch-all</div>
+            <div class="stat"><span class="stat-dot invalid"></span> <span id="invalidCount">0</span> invalide(s)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      <p class="note-text">
+        <strong>[INFO]</strong> Cette app utilise plusieurs APIs gratuites en cascade.<br>
+        Quand une API est épuisée, elle passe automatiquement à la suivante !<br><br>
+        ✅ <strong>Valide</strong> = L'adresse existe<br>
+        ⚠️ <strong>Catch-all</strong> = Serveur accepte tout<br>
+        ❌ <strong>Invalide</strong> = L'adresse n'existe pas
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Load providers status on page load
+    async function loadProvidersStatus() {
+      try {
+        const response = await fetch('/api/providers-status');
+        const providers = await response.json();
+        
+        const bar = document.getElementById('providersBar');
+        bar.innerHTML = providers.map(p => {
+          let className = 'provider-chip ';
+          let icon = '';
+          
+          if (!p.configured) {
+            className += 'not-configured';
+            icon = '○';
+          } else if (p.status.exhausted) {
+            className += 'exhausted';
+            icon = '✗';
+          } else {
+            className += 'configured';
+            icon = '✓';
+          }
+          
+          return `<span class="${className}">${icon} ${p.name}</span>`;
+        }).join('');
+      } catch (e) {
+        console.error('Failed to load providers status', e);
+      }
+    }
+    loadProvidersStatus();
+
+    const patterns = [
+      (f, l) => `${f}.${l}`,
+      (f, l) => `${f}${l}`,
+      (f, l) => `${f[0]}${l}`,
+      (f, l) => `${f}`,
+      (f, l) => `${l}`,
+      (f, l) => `${f[0]}.${l}`,
+      (f, l) => `${f}-${l}`,
+    ];
+
+    function cleanString(str) {
+      return str.toLowerCase().trim()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z]/g, '');
+    }
+
+    function generateEmails(firstName, lastName, domain) {
+      const f = cleanString(firstName);
+      const l = cleanString(lastName);
+      const d = domain.toLowerCase().trim()
+        .replace(/^(https?:\/\/)?(www\.)?/, '')
+        .replace(/\/$/, '');
+      
+      return [...new Set(patterns.map(p => `${p(f, l)}@${d}`))];
+    }
+
+    async function verifyEmail(email) {
+      try {
+        const response = await fetch('/api/verify-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        return await response.json();
+      } catch (error) {
+        return {
+          email,
+          valid: false,
+          status: 'error',
+          confidence: 'low',
+          details: 'Erreur de connexion',
+          provider: 'none'
+        };
+      }
+    }
+
+    function getStatusClass(status) {
+      if (status === 'valid') return 'valid';
+      if (status === 'accept_all' || status === 'risky') return 'accept_all';
+      if (status === 'invalid' || status === 'disposable' || status === 'error') return 'invalid';
+      return 'unknown';
+    }
+
+    function getStatusText(result) {
+      switch(result.status) {
+        case 'valid': return '✓ VALIDE';
+        case 'accept_all': return '? CATCH-ALL';
+        case 'risky': return '⚠ RISQUÉ';
+        case 'invalid': return '✗ INVALIDE';
+        case 'disposable': return '✗ JETABLE';
+        case 'error': case 'api_error': return '✗ ERREUR';
+        default: return `? ${(result.status || 'UNKNOWN').toUpperCase()}`;
+      }
+    }
+
+    function renderResult(result, index, isChecking = false, isBest = false) {
+      const statusClass = isChecking ? 'checking' : getStatusClass(result.status);
+      const statusText = isChecking ? '... VÉRIFICATION' : getStatusText(result);
+      const bestClass = isBest ? 'best-result' : '';
+      
+      const copyBtn = (result.status === 'valid' || result.status === 'accept_all') && !isChecking
+        ? `<button class="copy-btn" onclick="copyEmail('${result.email}')">📋 Copier</button>`
+        : '';
+      
+      const providerBadge = result.provider && result.provider !== 'none' && !isChecking
+        ? `<span class="result-provider">via ${result.provider}</span>`
+        : '';
+      
+      return `
+        <div id="result-${index}" class="result-item result-${statusClass} ${bestClass}">
+          <div class="result-header">
+            <span class="result-email">${result.email} ${copyBtn}</span>
+            ${providerBadge}
+          </div>
+          <div class="result-badges">
+            <span class="badge badge-${statusClass}">${statusText}</span>
+            ${result.score ? `<span class="badge badge-score">Score: ${result.score}/100</span>` : ''}
+          </div>
+          ${result.details ? `<div class="result-details">// ${result.details}</div>` : ''}
+        </div>
+      `;
+    }
+
+    function copyEmail(email) {
+      navigator.clipboard.writeText(email).then(() => {
+        alert('Email copié: ' + email);
+      });
+    }
+
+    async function searchEmails() {
+      const firstName = document.getElementById('firstName').value;
+      const lastName = document.getElementById('lastName').value;
+      const domain = document.getElementById('domain').value;
+
+      if (!firstName || !lastName || !domain) {
+        alert('[ERROR] Veuillez remplir tous les champs obligatoires');
+        return;
+      }
+
+      const btn = document.getElementById('searchBtn');
+      const resultsDiv = document.getElementById('results');
+      const resultsList = document.getElementById('resultsList');
+      const summary = document.getElementById('summary');
+
+      btn.disabled = true;
+      btn.textContent = '[RUNNING...] VÉRIFICATION EN COURS';
+      resultsDiv.style.display = 'block';
+      summary.style.display = 'none';
+      resultsList.innerHTML = '';
+
+      const emails = generateEmails(firstName, lastName, domain);
+      const results = [];
+      
+      // Show all emails as pending
+      emails.forEach((email, index) => {
+        resultsList.innerHTML += renderResult({ email, status: 'pending', details: 'En attente...' }, index, true);
+      });
+
+      // Verify each email
+      for (let i = 0; i < emails.length; i++) {
+        const result = await verifyEmail(emails[i]);
+        results.push(result);
+        document.getElementById(`result-${i}`).outerHTML = renderResult(result, i);
+        
+        // Refresh providers status after each call
+        loadProvidersStatus();
+      }
+
+      // Find best result
+      let bestResult = null;
+      let bestIndex = -1;
+      let bestScore = -1;
+
+      results.forEach((r, i) => {
+        let score = 0;
+        if (r.status === 'valid') score = 100 + (r.score || 0);
+        else if (r.status === 'accept_all' || r.status === 'risky') score = 50 + (r.score || 0);
+        
+        if (score > bestScore) {
+          bestScore = score;
+          bestResult = r;
+          bestIndex = i;
+        }
+      });
+
+      if (bestResult && bestScore > 0) {
+        document.getElementById(`result-${bestIndex}`).outerHTML = renderResult(bestResult, bestIndex, false, true);
+      }
+
+      // Update summary
+      let validCount = 0, catchallCount = 0, invalidCount = 0;
+      results.forEach(r => {
+        if (r.status === 'valid') validCount++;
+        else if (r.status === 'accept_all' || r.status === 'risky') catchallCount++;
+        else invalidCount++;
+      });
+
+      document.getElementById('validCount').textContent = validCount;
+      document.getElementById('catchallCount').textContent = catchallCount;
+      document.getElementById('invalidCount').textContent = invalidCount;
+      summary.style.display = 'block';
+
+      btn.disabled = false;
+      btn.textContent = '[EXEC] >> TROUVER L\'EMAIL';
+    }
+
+    document.getElementById('searchBtn').addEventListener('click', searchEmails);
+    
+    document.querySelectorAll('.input').forEach(input => {
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') searchEmails();
+      });
+    });
+  </script>
+</body>
+</html>
