@@ -198,7 +198,11 @@
       background: var(--eggshell);
       border-color: var(--coffee-light);
     }
-
+.result-skipped {
+  background: #F5F5F5;
+  border-color: #BDBDBD;
+  opacity: 0.6;
+}
     .result-checking {
       background: var(--eggshell);
       border-color: var(--orange);
@@ -489,16 +493,18 @@
       }
     }
 
-    function getStatusClass(status) {
-      if (status === 'valid') return 'valid';
-      if (status === 'accept_all' || status === 'risky') return 'accept_all';
-      if (status === 'invalid' || status === 'disposable' || status === 'error') return 'invalid';
-      return 'unknown';
-    }
+ function getStatusClass(status) {
+  if (status === 'valid') return 'valid';
+  if (status === 'accept_all' || status === 'risky') return 'accept_all';
+  if (status === 'invalid' || status === 'disposable' || status === 'error') return 'invalid';
+  if (status === 'skipped') return 'skipped';
+  return 'unknown';
+}
 
     function getStatusText(result) {
       switch(result.status) {
         case 'valid': return '✓ VALIDE';
+          case 'skipped': return '⏭ IGNORÉ';
         case 'accept_all': return '? CATCH-ALL';
         case 'risky': return '⚠ RISQUÉ';
         case 'invalid': return '✗ INVALIDE';
@@ -571,15 +577,35 @@
         resultsList.innerHTML += renderResult({ email, status: 'pending', details: 'En attente...' }, index, true);
       });
 
-      // Verify each email
-      for (let i = 0; i < emails.length; i++) {
-        const result = await verifyEmail(emails[i]);
-        results.push(result);
-        document.getElementById(`result-${i}`).outerHTML = renderResult(result, i);
-        
-        // Refresh providers status after each call
-        loadProvidersStatus();
-      }
+    // Verify each email (stop early if valid found)
+let foundValid = false;
+for (let i = 0; i < emails.length; i++) {
+  const result = await verifyEmail(emails[i]);
+  results.push(result);
+  document.getElementById(`result-${i}`).outerHTML = renderResult(result, i, false, result.status === 'valid');
+  
+  // Refresh providers status after each call
+  loadProvidersStatus();
+  
+  // 🎯 STOP si on trouve un email VALIDE (pas catch-all, vraiment valide)
+  if (result.status === 'valid') {
+    foundValid = true;
+    console.log('✅ Email valide trouvé, arrêt de la recherche !');
+    
+    // Marquer les emails restants comme "skipped"
+    for (let j = i + 1; j < emails.length; j++) {
+      const skippedResult = {
+        email: emails[j],
+        status: 'skipped',
+        details: 'Recherche arrêtée - email valide déjà trouvé',
+        provider: 'none'
+      };
+      results.push(skippedResult);
+      document.getElementById(`result-${j}`).outerHTML = renderResult(skippedResult, j);
+    }
+    break;
+  }
+}
 
       // Find best result
       let bestResult = null;
